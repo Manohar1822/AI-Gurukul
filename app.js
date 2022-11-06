@@ -65,17 +65,53 @@ function randomStr(){
     return OTP;
 }
 
+
+
+const studentSchema=new mongoose.Schema({
+    organizationUsername:String,
+    username:String,
+    password:String,
+    googleId:String,
+    studentId:String,
+    name:String,
+    auth:String,
+    role:String,
+    registered:{
+        type:Boolean,
+        default:false
+    }
+});
+
+const teacherSchema=new mongoose.Schema({
+    organizationUsername:String,
+    username:String,
+    password:String,
+    googleId:String,
+    teacherId:String,
+    name:String,
+    auth:String,
+    role:String,
+    registered:{
+        type:Boolean,
+        default:false
+    }
+});
+
 const organizationSchema=new mongoose.Schema({
     username:String,
     password:String,
     googleId:String,
     name:String,
     auth:String,
-    registered:{
+    role:String,
+    teachers:[teacherSchema],
+    students:[studentSchema],
+    registeredOrg:{
         type:Boolean,
         default:false
     }
 });
+
 organizationSchema.plugin(passportLocalMongoose);
 organizationSchema.plugin(findOrCreate);
 
@@ -95,11 +131,16 @@ passport.use(new GoogleStrategy({
     clientID: process.env.CLIENT_ID,
     clientSecret: process.env.CLIENT_SECRET,
     callbackURL: "http://localhost:3000/auth/google/organizationpage",
-    //userProfileURL:"https://www.googleapis.com/oauth2/v3/userinfo"
+    userProfileURL:"https://www.googleapis.com/oauth2/v3/userinfo"
   },
   function(accessToken, refreshToken, profile, cb) {
-    //////////////////////////////////////////////////////////////////////////////////////////////console.log(profile);
+    //console.log(profile);
+    //console.log(accessToken);
+    //console.log(refreshToken);
+    //console.log(profile.emails[0].value);Not Working
     Organization.findOrCreate({ googleId: profile.id }, function (err, user) {
+        //user.username:profile.emails[0];
+        //user.save();
       return cb(err, user);
     });
   }
@@ -112,7 +153,7 @@ app.get("/auth/google",
   passport.authenticate("google", { failureRedirect: "/login" }),
   function(req, res) {
     // Successful authentication, redirect home.
-    req.user.registered=true;
+    req.user.registeredOrg=true;
     req.user.save();
     res.redirect('/organizationpage');
   });
@@ -123,10 +164,10 @@ app.get("/",function(req,res){
 });
 
 app.get("/loginorganization",function(req,res){
-    res.render("login");
+    res.render("loginOrg",{message:""});
 });
 app.get("/registerorganization",function(req,res){
-    res.render("register",{message:"NoMessage"});
+    res.render("registerOrg",{message:""});
 });
 
 app.post("/registerorganization",function(req,res){
@@ -134,7 +175,7 @@ app.post("/registerorganization",function(req,res){
     Organization.register({username:req.body.username},req.body.password,function(err,user){
         if(err){
             console.log(err);
-            res.render("register",{message:"User Already Exists, Please try to login with same username"});
+            res.render("registerOrg",{message:"User Already Exists, Please try to login with same username"});
         }
         else{
             passport.authenticate("local")(req,res,function(){
@@ -149,16 +190,25 @@ app.post("/loginorganization",function(req,res){
         username:req.body.username,
         password:req.body.password
     });
-    req.login(user,function(err){
-        if(err){
-            console.log(err);
+    Organization.findOne({username:req.body.username},function(err,foundUser){
+        if(!foundUser){
+            res.render("loginOrg",{message:"User Not Found, Please try to Register with same username"})
         }
         else{
-            passport.authenticate("local")(req,res,function(){
-                res.redirect("/homeorganization");
+            req.login(user,function(err){
+                if(err){
+                    console.log("User Not Found");
+                    console.log(err);
+                }
+                else{
+                    passport.authenticate("local")(req,res,function(){
+                        res.redirect("/homeorganization");
+                    });
+                }
             });
         }
-    });
+    })
+    
 })
 
 
@@ -192,7 +242,7 @@ app.get("/organizationpage",function(req,res){
 app.get("/homeorganization",function(req,res){
     console.log("Under /homeorganization and data of user is "+req.user);
     if(req.isAuthenticated()){
-        if(req.user.registered){
+        if(req.user.registeredOrg){
             res.render("homeorganization",{name:req.user.name});
         }
         else{
@@ -234,7 +284,7 @@ app.post("/verify",function(req,res){
     const OTP=req.body.OTP;
     const enteredAuth=req.user.username+OTP;
     if(enteredAuth==req.user.auth){
-        req.user.registered=true;
+        req.user.registeredOrg=true;
         req.user.save();
         res.redirect("/organizationpage");
     }
@@ -256,7 +306,7 @@ app.get("/linkverify/:auth",function(req,res){
     const reqAuth=req.params.auth;
     Organization.findOne({auth:reqAuth},function(err,foundUser){
         if(!err){
-            foundUser.registered=true;
+            foundUser.registeredOrg=true;
         foundUser.save();
         res.redirect("/organizationpage");
         }
@@ -266,6 +316,47 @@ app.get("/linkverify/:auth",function(req,res){
         }
     })
 
+})
+
+app.get("/aboutus",function(req,res){
+    res.render("aboutUs");
+})
+
+app.get("/adminfirstpage",function(req,res){
+    res.render("adminFirstPage");
+})
+
+app.get("/teacherfirstpage",function(req,res){
+    res.render("teacherFirstPage");
+})
+
+app.get("/studentfirstpage",function(req,res){
+    res.render("studentFirstPage");
+})
+
+
+app.get("/loginchoose",function(req,res){
+    res.render("loginChooseUser");
+})
+
+app.get("/registerchoose",function(req,res){
+    res.render("registerChooseUser");
+})
+
+app.get("/loginteacher",function(req,res){
+    res.render("loginteacher",{message:""});
+});
+
+app.get("/loginstudent",function(req,res){
+    res.render("loginstudent",{message:""});
+});
+
+app.get("/registerteacher",function(req,res){
+    res.render("registerTeacher",{message:""});
+})
+
+app.get("/registerstudent",function(req,res){
+    res.render("registerStudent",{message:""});
 })
 
 app.listen(3000,function(){

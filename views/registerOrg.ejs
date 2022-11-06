@@ -1,6 +1,8 @@
 <%- include('partials/header') %>
+<%- include('partials/navbar') %>
+
 <div class="container mt-5">
-  <h1>Register yourself</h1>
+  <h1>Register Organization</h1>
 
   <div class="row">
     <div class="col-sm-8">
@@ -11,6 +13,7 @@
           <form action="/registerorganization" method="POST">
             <div class="form-group">
               <label for="email">*Email</label>
+              <p style="color:red;"><%= message %> </p>
               <input type="email" required class="form-control" name="username">
             </div>
             <div class="form-group">
@@ -21,11 +24,11 @@
           </form>
 
         </div>
-        <a href="/loginorganization" class="btn btn-light btn-lg">Already User, Login</a>
+        <a href="/loginorganization" class="btn btn-light btn-lg" >Already User?, Login</a>
       </div>
     </div>
 
-    <div class="col-sm-4">
+    <!--<div class="col-sm-4">
       <div class="card social-block">
         <div class="card-body">
           <a class="btn btn-block btn-social btn-google" href="/auth/google" role="button">
@@ -34,7 +37,7 @@
           </a>
         </div>
       </div>
-    </div> 
+    </div> -->
 
   </div>
 </div>

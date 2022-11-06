@@ -15,3 +15,20 @@ body {
     background-color: #000;
   }
   
+  .box {
+    max-width: 400px;
+    margin: 25px auto;
+    background: white;
+    border-radius: 5px;
+    box-shadow: 5px 5px 15px -5px rgba(0, 0, 0, 0.3);
+    overflow:hidden;
+  }
+  
+  .userbtn {
+    background-color: black;
+    text-align: center;
+    padding-right: 100%;
+  }
+  .present{
+    background-color: darkcyan;
+  }
