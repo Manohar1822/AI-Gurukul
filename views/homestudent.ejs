@@ -3,10 +3,12 @@
 <div class="jumbotron text-center">
     <div class="container mt-5">
         <h1>Welcome to AI-Gurukul</h1>
-        <h1><%= name %></h1>
+        <h1>Hi,<%= User.name %></h1>
+        <h1>your organization is <%=User.orgName%> .</h1>
+        
+        
         <hr>
         <a class="btn btn-light btn-lg" href="/logoutorganization" role="button">Log Out</a>
-        <a class="btn btn-dark" href="/createClass">Create Class</a>
 </div>
 </div>
 
