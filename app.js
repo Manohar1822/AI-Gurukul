@@ -258,7 +258,14 @@ app.get("/homeorganization",function(req,res){
     //console.log("Under /homeorganization and data of user is "+req.user);
     if(req.isAuthenticated()){
         if(req.user.registeredOrg){
-            res.render("homeorganization",{name:req.user.name});
+            Class.find({"classOrg.username":req.user.username},function(err,foundClass){
+                if(!err){
+                    res.render("homeorganization",{User:req.user,Clas:foundClass});
+                }
+                else{
+                    res.render("homeorganization",{User:req.user,Clas:false});
+                }
+            })
         }
         else{
             Organization.findOne({username:req.user.username,role:"Admin"},function(err,foundUser){
@@ -592,7 +599,15 @@ app.get("/homestudent",function(req,res){
     if(req.isAuthenticated()){
         if(req.user.registeredStudent){
             if(req.user.name){
-                res.render("homestudent",{name:req.user.name,User:req.user});
+                Class.findOne({"classStudent.username":req.user.username},function(err,foundClass){
+                    if(!err){
+                        res.render("homestudent",{User:req.user,Class:foundClass});
+                    }
+                    else{
+                        res.render("homestudent",{User:req.user,Class:false});
+                    }
+                })
+                
             }
             else{
                 res.redirect("/studentpage1");

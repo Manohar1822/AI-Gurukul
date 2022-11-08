@@ -32,3 +32,9 @@ body {
   .present{
     background-color: darkcyan;
   }
+  .item{
+    min-height: 70px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #F1F1F1;
+  }

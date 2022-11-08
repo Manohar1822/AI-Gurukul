@@ -4,12 +4,17 @@
     <div class="container mt-5">
         <h1>Welcome to AI-Gurukul</h1>
         <h1>Hi,<%= User.name %></h1>
-        <h1>your organization is <%=User.orgName%> .</h1>
-        
+        <h1>your organization is <%=User.orgName%> </h1>
+        <%if(Class!=false){%>
+            <p>Your are in class <%=Class.className%> </p>
+        <%}%>
+        <%if(Class==false){%>
+            <p style="color:red ;">Please ask your organization to add class</p>
+        <%}%>
         
         <hr>
         <a class="btn btn-light btn-lg" href="/logoutorganization" role="button">Log Out</a>
-</div>
+    </div>
 </div>
 
 

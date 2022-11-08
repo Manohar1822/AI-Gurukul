@@ -3,10 +3,41 @@
 <div class="jumbotron text-center">
     <div class="container mt-5">
         <h1>Welcome to AI-Gurukul</h1>
-        <h1><%= name %></h1>
+        <h1><%=User.name %></h1>
+        
         <hr>
         <a class="btn btn-light btn-lg" href="/logoutorganization" role="button">Log Out</a>
         <a class="btn btn-dark" href="/createClass">Create Class</a>
+        <hr>
+        <div class="box">
+            <h1>Created Classes</h1>
+        </div>
+        <div class="box">
+            <%if(Clas!=false){%>
+                <%Clas.forEach(function(clas){%>
+                    <div class="item">
+                        <h3><%=clas.className%> </h3>
+                    </div>
+                    
+                <%})%>
+                
+                <div class="row">
+                    <div class="col text-center box">
+                        <a href="/createClass" class="btn btn-dark userbtn"><h2>Create New Class</h2></a>
+                    </div>
+                </div>
+            <%}%>
+            <%if(Clas==false){%>
+                <div class="item">
+                
+                    <%if(Clas==false){%>
+                        <p style="color:red ;">Please add class</p>
+                    <%}%>
+    
+                </div>
+                <%}%>
+            
+        </div>
 </div>
 </div>
 
