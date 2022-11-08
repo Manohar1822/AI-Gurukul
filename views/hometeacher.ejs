@@ -1,0 +1,37 @@
+<%- include('partials/header') %>
+
+<div class="jumbotron text-center">
+    <div class="container mt-5">
+        <h1>Welcome to AI-Gurukul</h1>
+        <h1><%=User.name %></h1>
+        <h1>You are teacher of <%=User.orgName%></h1>
+        <hr>
+        <a class="btn btn-light btn-lg" href="/logoutorganization" role="button">Log Out</a>
+        <hr>
+        <div class="box">
+            <h1>Available Classes</h1>
+        </div>
+        <div class="box">
+            <%if(Clas!=false){%>
+                <%Clas.forEach(function(clas){%>
+                    <div class="item">
+                        <h3><%=clas.className%> </h3>
+                    </div>                
+                <%})%>
+            <%}%>
+            <%if(Clas==false){%>
+                <div class="item">
+                
+                    <%if(Clas==false){%>
+                        <p style="color:red ;">Please ask your Organization to add class</p>
+                    <%}%>
+    
+                </div>
+                <%}%>
+            
+        </div>
+</div>
+</div>
+
+
+<%- include('partials/footer') %>

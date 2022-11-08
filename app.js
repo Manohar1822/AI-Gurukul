@@ -270,9 +270,14 @@ app.get("/homeorganization",function(req,res){
         else{
             Organization.findOne({username:req.user.username,role:"Admin"},function(err,foundUser){
                 //Organization.findByIdAndRemove(foundUser._id,function(err){
-                    if(!err){
+                    if(foundUser){
                         console.log("Verify your email First");
-                        res.redirect("/sendemailOrg");
+                        if(foundUser.role=="Admin"){
+                            res.redirect("/sendemailOrg");
+                        }
+                        else{
+                            res.render("unauthorized");
+                        }
                     }
                     else{
                         res.render("unauthorized");
@@ -310,9 +315,10 @@ app.post("/verifyOrg",function(req,res){
         const OTP=req.body.OTP;
     const enteredAuth=req.user.username+OTP;
     if(enteredAuth==req.user.auth){
-        req.user.registeredOrg=true;
-        //req.user.role="Admin";
-        req.user.save();
+        if(req.user.role=="Admin"){
+            req.user.registeredOrg=true;
+            req.user.save();
+        }
         res.redirect("/organizationpage");
     }
     else{
@@ -347,12 +353,12 @@ app.get("/linkverify/:auth",function(req,res){
             else if(foundUser.role=="Student"){
                 foundUser.registeredStudent=true;
         foundUser.save();
-        res.redirect("/studentpage");
+        res.redirect("/studentpage1");
             }
             else if(foundUser.role=="Teacher"){
                 foundUser.registeredTeacher=true;
         foundUser.save();
-        res.redirect("/teacherpage");
+        res.redirect("/teacherpage1");
             }
             
         }
@@ -464,10 +470,37 @@ app.post("/createClass",function(req,res){
 });
 
 
+/*
+
+
+
+
+
+
+
+
+
+
+
+STUDENT PART
+
+
+
+
+
+
+
+
+
+
+
+*/
+
+
 app.post("/registerstudent",function(req,res){
     const username=req.body.username;
     const pincode=req.body.pincode;
-    console.log("In the post /registerorganization");
+    console.log("In the post /registerstudent");
     Organization.register({username:req.body.username},req.body.password,function(err,user){
         if(err){
             console.log(err);
@@ -502,9 +535,11 @@ app.post("/verifyStudent",function(req,res){
     const OTP=req.body.OTP;
     const enteredAuth=req.user.username+OTP;
     if(enteredAuth==req.user.auth){
-        req.user.registeredStudent=true;
+        if(req.user.role=="Student"){
+            req.user.registeredStudent=true;
+            req.user.save();
+        }
         //req.user.role="Admin";
-        req.user.save();
         res.redirect("/studentpage1");
     }
     else{
@@ -615,11 +650,16 @@ app.get("/homestudent",function(req,res){
             
         }
         else{
-            Organization.findOne({username:req.user.username,role:"Admin"},function(err,foundUser){
+            Organization.findOne({username:req.user.username,role:"Student"},function(err,foundUser){
                 //Organization.findByIdAndRemove(foundUser._id,function(err){
-                    if(!err){
+                    if(foundUser){
                         console.log("Verify your email First");
-                        res.redirect("/sendemailOrg");
+                        if(foundUser.role=="Student"){
+                            res.redirect("/sendemailStudent");
+                        }
+                        else{
+                            res.render("unauthorized");
+                        }
                     }
                     else{
                         res.render("unauthorized");
@@ -651,6 +691,233 @@ app.post("/loginstudent",function(req,res){
                 else{
                     passport.authenticate("local")(req,res,function(){
                         res.redirect("/homestudent");
+                    });
+                }
+            });
+        }
+    })
+})
+/*
+
+
+
+
+
+
+
+TEACHER PART
+
+
+
+
+
+
+
+
+
+
+*/
+app.post("/registerteacher",function(req,res){
+    const username=req.body.username;
+    const pincode=req.body.pincode;
+    console.log("In the post /registerteacher");
+    Organization.register({username:req.body.username},req.body.password,function(err,user){
+        if(err){
+            console.log(err);
+            res.render("registerTeacher",{message:"User Already Exists, Please try to login with same username"});
+        }
+        else{
+            
+            passport.authenticate("local")(req,res,function(){
+                Organization.findOne({username:username},function(err,foundUser){
+                    foundUser.role="Teacher";
+                    foundUser.save();
+                });
+                res.redirect("/sendemailTeacher");
+            });
+            
+        }
+        
+    });
+});
+
+app.get("/sendemailTeacher",function(req,res){
+    let rand=randomStr();
+    const auth=req.user.username+rand;
+    req.user.auth=auth;
+    req.user.save();
+    //console.log(req.user.auth);
+    sendOTP(req.user.username,rand,auth);
+    res.render("enterotpTeacher",{email:req.user.username,message:""});
+});
+
+app.post("/verifyTeacher",function(req,res){
+    const OTP=req.body.OTP;
+    const enteredAuth=req.user.username+OTP;
+    if(enteredAuth==req.user.auth){
+        if(req.user.role=="Teacher"){
+            req.user.registeredTeacher=true;
+            req.user.save();
+        }
+        
+        res.redirect("/teacherpage1");
+    }
+    else{
+        console.log("Incorrect OTP");
+        res.render("enterotpTeacher",{email:req.user.username, message:"Incorrect OTP, Please enter the correct OTP"});
+    }
+});
+
+
+app.get("/teacherpage1",function(req,res){
+    if(req.isAuthenticated() && req.user.role=="Teacher"){
+        //console.log(req.user.name);
+        if(req.user.name){
+
+            res.redirect("/hometeacher");
+        }
+        else{
+            Organization.find({role:"Admin",registeredOrg:true,name:{"$ne":""}},function(err,foundOrg){
+                if(!err){
+                    res.render("teacherpage1",{organizations:foundOrg});
+                }
+                else{
+                    res.render("teachertpage1",{organizations:false});   
+                }
+            })
+            
+        }
+        
+    }
+    else{
+        res.redirect("/loginteacher");
+    }
+});
+
+
+app.post("/orgteacher",function(req,res){
+    if(req.isAuthenticated() && req.user.role=="Teacher"){
+        if(req.body.orgUsername){
+            req.user.orgUsername=req.body.orgUsername;
+            
+            Organization.findOne({username:req.body.orgUsername},function(err,foundOrg){
+                if(!err){
+                    req.user.orgName=foundOrg.name;
+                    req.user.save();
+                }
+            })
+            
+        
+        Class.find({orgUsername:req.body.orgUsername},function(err,foundClass){
+            if(!err){
+                res.render("teacherpage2",{classes:foundClass});
+            }
+            else{
+                res.render("teacherpage2",{classes:false});
+            }
+            
+        })
+        }
+        else{
+            res.redirect("/teacherpage1");
+        }
+        
+    }
+    else{
+        res.redirect("/");
+    }
+});
+
+
+app.post("/detailteacher",function(req,res){
+    if(req.isAuthenticated() && req.user.orgUsername && req.user.role=="Teacher"){
+        req.user.name=req.body.name;
+        req.user.class=req.body.class;
+        req.user.orgTypeOfID=req.body.typeOfID;
+        req.user.orgID=req.body.orgID;
+        req.user.phone=req.body.phone;
+        req.user.optionalPhone=req.body.optionalPhone;
+        req.user.save();
+        /*Organization.findOne({username:req.user.orgUsername}, function(err,foundOrg){
+            req.user.orgName=foundOrg.name;
+            req.user.save();
+        })*/
+        Class.find({orgUsername:req.user.orgUsername},function(err,foundClasses){
+            foundClasses.forEach(function(clas){
+                clas.classTeacher.push(req.user);
+                clas.save();
+            })
+        })
+        res.redirect("/hometeacher");
+    }
+    else{
+        res.redirect("/teacherpage1");
+    }
+});
+
+
+app.get("/hometeacher",function(req,res){
+    if(req.isAuthenticated()){
+        if(req.user.registeredTeacher){
+            if(req.user.name){
+                Class.find({"classTeacher.username":req.user.username},function(err,foundClass){
+                    if(!err){
+                        res.render("hometeacher",{User:req.user,Clas:foundClass});
+                    }
+                    else{
+                        res.render("hometeacher",{User:req.user,Clas:false});
+                    }
+                })
+                
+            }
+            else{
+                res.redirect("/teacherpage1");
+            }
+            
+        }
+        else{
+            Organization.findOne({username:req.user.username,role:"Teacher"},function(err,foundUser){
+                //Organization.findByIdAndRemove(foundUser._id,function(err){
+                    if(foundUser){
+                        console.log("Verify your email First");
+                        if(foundUser.role=="Teacher"){
+                            res.redirect("/sendemailTeacher");
+                        }
+                        else{
+                            res.render("unauthorized");
+                        }
+                    }
+                    else{
+                        res.render("unauthorized");
+                    }
+                //})
+            })
+        }
+    }
+    else{
+        res.redirect("/loginteacher");
+    }
+});
+
+
+app.post("/loginteacher",function(req,res){
+    const user=new Organization({
+        username:req.body.username,
+        password:req.body.password
+    });
+    Organization.findOne({username:req.body.username},function(err,foundUser){
+        if(!foundUser){
+            res.render("loginteacher",{message:"User Not Found, Please try to Register with same username"})
+        }
+        else{
+            req.login(user,function(err){
+                if(err){
+                    console.log("User Not Found");
+                    console.log(err);
+                }
+                else{
+                    passport.authenticate("local")(req,res,function(){
+                        res.redirect("/hometeacher");
                     });
                 }
             });
