@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 
 <div class="jumbotron text-center">
-    <div class="container mt-5">
+    <div class="container mt-6">
         <h1>Welcome to AI-Gurukul</h1>
         <h1><%=User.name %></h1>
         
@@ -9,35 +9,58 @@
         <a class="btn btn-light btn-lg" href="/logoutorganization" role="button">Log Out</a>
         <a class="btn btn-dark" href="/createClass">Create Class</a>
         <hr>
-        <div class="box">
-            <h1>Created Classes</h1>
-        </div>
-        <div class="box">
-            <%if(Clas!=false){%>
-                <%Clas.forEach(function(clas){%>
-                    <div class="item">
-                        <h3><%=clas.className%> </h3>
-                    </div>
+        <div class="flex-container">
+            <div class="box">
+                <div class="box">
+                    <h1>Created Classes</h1>
+                </div>
+                <%if(Clas!=false){%>
+                    <%Clas.forEach(function(clas){%>
+                        <div class="item">
+                            <h3><%=clas.className%> </h3>
+                        </div>
+                        
+                    <%})%>
                     
-                <%})%>
-                
+                    
+                <%}%>
                 <div class="row">
                     <div class="col text-center box">
+                        <%if(Clas==false){%>
+                        <p style="color:red ;">Please add Class</p>
+                         <%}%>
                         <a href="/createClass" class="btn btn-dark userbtn"><h2>Create New Class</h2></a>
                     </div>
                 </div>
-            <%}%>
-            <%if(Clas==false){%>
-                <div class="item">
                 
-                    <%if(Clas==false){%>
-                        <p style="color:red ;">Please add class</p>
-                    <%}%>
-    
+                
+            </div>
+
+
+            <div class="box">
+                <div class="box">
+                    <h1>Teachers</h1>
                 </div>
+                <%if(Teacher!=false){%>
+                    <%Teacher.forEach(function(teacher){%>
+                        <div class="item">
+                            <h3><%=teacher.name%> </h3>
+                        </div>
+                        
+                    <%})%>
                 <%}%>
-            
+                <div class="row">
+                    <div class="col text-center box">
+                        <%if(Teacher==false){%>
+                        <p style="color:red ;">Please add Teachers</p>
+                         <%}%>
+                        <a href="/addteacher" class="btn btn-dark userbtn"><h2>send message to Teachers to join</h2></a>
+                    </div>
+                </div>
+                
+            </div>
         </div>
+        
 </div>
 </div>
 

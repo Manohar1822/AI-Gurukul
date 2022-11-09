@@ -55,6 +55,33 @@ function sendOTP(email,auth,authcode){
 
 }
 
+function sendrequest(email,message){
+    var smtpTransport = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            auth: {
+              user: process.env.EMAIL,
+              pass: process.env.PASSWORD
+            }
+    });
+    var mailOptions;
+    mailOptions={
+        from: 'mmrchmanohar@gmail.com',
+		to : email,
+		subject : "You have Join Request on AI-Gurukul app from your organization",
+		html : ""+message+"<p>Thanks and regards</p><p>AI GuruKul</p>"	
+	}
+    smtpTransport.sendMail(mailOptions, function(error, response){
+   	 if(error){
+        	console.log(error);
+	 }else{
+        	console.log("Message sent");
+    	 }
+});
+
+
+}
 
 function randomStr(){
     let OTP="";
@@ -70,7 +97,7 @@ function randomStr(){
 
 
 const organizationSchema=new mongoose.Schema({
-    //username:String,
+    username:{type:String,sparse:true,unique:false},
     password:String,
     googleId:String,
     name:String,
@@ -101,15 +128,15 @@ const organizationSchema=new mongoose.Schema({
         default:false
     }
 });
-const classSchema=new mongoose.Schema({
+const classSchema=({
     className:{type:String,sparse:true,unique:false},
     orgUsername:{type:String,sparse:true,unique:false},
-    classStudent:{type:[organizationSchema],sparse:true,unique:false},
-    classTeacher:{type:[organizationSchema],sparse:true,unique:false},
-    classOrg:{type:[organizationSchema],sparse:true,unique:false}
+    classStudent:{type:[organizationSchema],index:false,sparse:false,unique:false},
+    classTeacher:{type:[organizationSchema],index:false,sparse:false,unique:false},
+    classOrg:{type:[organizationSchema],index:false,sparse:false,unique:false}
 });
 
-organizationSchema.plugin(passportLocalMongoose);
+organizationSchema.plugin(passportLocalMongoose,{usernameField: 'username'});
 organizationSchema.plugin(findOrCreate);
 
 
@@ -259,11 +286,26 @@ app.get("/homeorganization",function(req,res){
     if(req.isAuthenticated()){
         if(req.user.registeredOrg){
             Class.find({"classOrg.username":req.user.username},function(err,foundClass){
-                if(!err){
-                    res.render("homeorganization",{User:req.user,Clas:foundClass});
+                
+                if(foundClass){
+                    Organization.find({"orgUsername":req.user.username,role:"Teacher",registeredTeacher:true},function(err,foundTeacher){
+                        if(foundTeacher){
+                            res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:foundTeacher});
+                        }
+                        else{
+                            res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:false});
+                        }
+                    })
                 }
                 else{
-                    res.render("homeorganization",{User:req.user,Clas:false});
+                    Organization.find({"orgUsername":req.user.username,role:"Teacher",registeredTeacher:true},function(err,foundTeacher){
+                        if(foundTeacher){
+                            res.render("homeorganization",{User:req.user,Clas:false,Teacher:foundTeacher});
+                        }
+                        else{
+                            res.render("homeorganization",{User:req.user,Clas:false,Teacher:false});
+                        }
+                    })
                 }
             })
         }
@@ -301,13 +343,18 @@ app.get("/logoutorganization",function(req,res){
 });
 
 app.get("/sendemailOrg",function(req,res){
-    let rand=randomStr();
+    if(req.isAuthenticated()){
+        let rand=randomStr();
     const auth=req.user.username+rand;
     req.user.auth=auth;
     req.user.save();
     //console.log(req.user.auth);
     sendOTP(req.user.username,rand,auth);
     res.render("enterotp",{email:req.user.username,message:""});
+    }
+    else{
+        res.redirect("/");
+    }
 });
 
 app.post("/verifyOrg",function(req,res){
@@ -522,13 +569,19 @@ app.post("/registerstudent",function(req,res){
 })
 
 app.get("/sendemailStudent",function(req,res){
-    let rand=randomStr();
+    if(req.isAuthenticated()){
+        let rand=randomStr();
     const auth=req.user.username+rand;
     req.user.auth=auth;
     req.user.save();
     //console.log(req.user.auth);
     sendOTP(req.user.username,rand,auth);
     res.render("enterotpStudent",{email:req.user.username,message:""});
+    }
+    else{
+        res.redirect("/");
+    }
+    
 });
 
 app.post("/verifyStudent",function(req,res){
@@ -742,13 +795,18 @@ app.post("/registerteacher",function(req,res){
 });
 
 app.get("/sendemailTeacher",function(req,res){
-    let rand=randomStr();
+    if(req.isAuthenticated()){
+        let rand=randomStr();
     const auth=req.user.username+rand;
     req.user.auth=auth;
     req.user.save();
     //console.log(req.user.auth);
     sendOTP(req.user.username,rand,auth);
     res.render("enterotpTeacher",{email:req.user.username,message:""});
+    }
+    else{
+        res.redirect("/");
+    }
 });
 
 app.post("/verifyTeacher",function(req,res){
@@ -925,7 +983,26 @@ app.post("/loginteacher",function(req,res){
     })
 })
 
+app.get("/addteacher",function(req,res){
+    if(req.isAuthenticated()){
+        if(req.user.role=="Admin"&&req.user.registeredOrg==true){
+            res.render("addteacher",{Org:req.user});
+        }
+        else{
+            res.render("unauthorized");
+        }
+    }
+    else{
+        res.redirect("/");
+    }
+});
 
+app.post("/addteacher",function(req,res){
+    const email=req.body.email;
+    const message="Hello,\nGreetings of the day,\nYou are invited by organization: "+req.user.name+","+req.user.pincode+"\n Please visit our AI Gurukul App now to join this organization as teacher"
+    sendrequest(email,message);
+    res.redirect("/homeorganization")
+})
 app.listen(3000,function(){
     console.log("server started on port 3000");
 });
