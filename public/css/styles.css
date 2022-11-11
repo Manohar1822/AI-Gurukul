@@ -4,11 +4,13 @@ body {
   }
   
   .centered {
+    position: relative;
       padding-top: 200px;
       text-align: center;
   }
   
   .secret-text {
+    position: relative;
     text-align: center;
     font-size: 2rem;
     color: #fff;
@@ -16,15 +18,17 @@ body {
   }
   
   .box {
+    position: relative;
     max-width: 100%;
     margin: 25px auto;
     background: white;
     border-radius: 5px;
     box-shadow: 5px 5px 15px -5px rgba(0, 0, 0, 0.3);
-    overflow:hidden;
+    
   }
   
   .userbtn {
+    position: relative;
     background-color: black;
     text-align: center;
     padding-right: 100%;
@@ -33,18 +37,22 @@ body {
     background-color: darkcyan;
   }
   .item{
+    position: relative;
+    padding-right: 5%;
     min-height: 70px;
   display: flex;
   align-items: center;
   border-bottom: 1px solid #F1F1F1;
   }
   .flex-container {
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     background-color: DodgerBlue;
   }
   
   .flex-container > div {
+    position: relative;
     text-align: center;
     background-color: #f1f1f1;
     width: 48%;

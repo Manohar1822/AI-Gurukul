@@ -285,25 +285,54 @@ app.get("/homeorganization",function(req,res){
     //console.log("Under /homeorganization and data of user is "+req.user);
     if(req.isAuthenticated()){
         if(req.user.registeredOrg){
-            Class.find({"classOrg.username":req.user.username},function(err,foundClass){
+            const orgUsername=req.user.username;
+            Class.find({"classOrg.username":orgUsername},function(err,foundClass){
                 
                 if(foundClass){
-                    Organization.find({"orgUsername":req.user.username,role:"Teacher",registeredTeacher:true},function(err,foundTeacher){
+                    Organization.find({"orgUsername":orgUsername,role:"Teacher",registeredTeacher:true},function(err,foundTeacher){
                         if(foundTeacher){
-                            res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:foundTeacher});
+                            Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                                if(foundStudent){
+                                    res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:foundTeacher,Student:foundStudent});
+                                }
+                                else{
+                                    res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:foundTeacher,Student:false});
+                                }
+                            })
                         }
                         else{
-                            res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:false});
+                            Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                                if(foundStudent){
+                                    res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:false,Student:foundStudent});
+                                }
+                                else{
+                                    res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:false,Student:false});
+                                }
+                            })
                         }
                     })
                 }
                 else{
-                    Organization.find({"orgUsername":req.user.username,role:"Teacher",registeredTeacher:true},function(err,foundTeacher){
+                    Organization.find({"orgUsername":orgUsername,role:"Teacher",registeredTeacher:true},function(err,foundTeacher){
                         if(foundTeacher){
-                            res.render("homeorganization",{User:req.user,Clas:false,Teacher:foundTeacher});
+                            Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                                if(foundStudent){
+                                    res.render("homeorganization",{User:req.user,Clas:false,Teacher:foundTeacher,Student:foundStudent});
+                                }
+                                else{
+                                    res.render("homeorganization",{User:req.user,Clas:false,Teacher:foundTeacher,Student:false});
+                                }
+                            })
                         }
                         else{
-                            res.render("homeorganization",{User:req.user,Clas:false,Teacher:false});
+                            Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                                if(foundStudent){
+                                    res.render("homeorganization",{User:req.user,Clas:false,Teacher:false,Student:foundStudent});
+                                }
+                                else{
+                                    res.render("homeorganization",{User:req.user,Clas:false,Teacher:false,Student:false});
+                                }
+                            })
                         }
                     })
                 }
@@ -1003,6 +1032,86 @@ app.post("/addteacher",function(req,res){
     sendrequest(email,message);
     res.redirect("/homeorganization")
 })
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
+
+
+app.post("/approvedelete",function(req,res){
+    const id=req.body.userID;
+    if(req.isAuthenticated()){
+        if(req.user.role=="Admin"&&req.user.registeredOrg==true){
+            console.log("Inside");
+            if(req.body.Request=="Approve"){
+                //console.log("Approve Pending");
+                Organization.findOne({_id:id},function(err,foundUser){
+                    foundUser.approved=true;
+                    foundUser.save();
+                    res.redirect("/homeorganization");
+                })
+            }
+            else if(req.body.Request=="Remove"){
+                Organization.findByIdAndRemove(id,function(err){
+                    if(!err){
+                        console.log("Successfully Removed and deleted account");
+                        res.redirect("/homeorganization");
+                    }
+                });
+            }
+            else if(req.body.Request=="Reject"){
+                Organization.findByIdAndRemove(id,function(err){
+                    if(!err){
+                        console.log("Successfully Removed and deleted account");
+                        res.redirect("/homeorganization");
+                    }
+                });
+            }
+        }
+    } 
+})
+
+
+app.get("/addstudent",function(req,res){
+    if(req.isAuthenticated()){
+        if(req.user.role=="Admin"&&req.user.registeredOrg==true){
+            res.render("addstudent",{Org:req.user});
+        }
+        else{
+            res.render("unauthorized");
+        }
+    }
+    else{
+        res.redirect("/");
+    }
+});
+
+
+
+app.post("/addstudent",function(req,res){
+    const email=req.body.email;
+    const message="Hello,\nGreetings of the day,\nYou are invited by organization: "+req.user.name+","+req.user.pincode+"\n Please visit our AI Gurukul App now to join this organization as a Student"
+    sendrequest(email,message);
+    res.redirect("/homeorganization")
+})
+
+
 app.listen(3000,function(){
     console.log("server started on port 3000");
 });
