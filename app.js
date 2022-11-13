@@ -55,6 +55,34 @@ function sendOTP(email,auth,authcode){
 
 }
 
+function saveToExam(examName,orgUsername,questionNo){
+    //console.log(examName);
+    //console.log(orgUsername);
+    //console.log(questionNo);
+    Question.findOne({examName:examName,orgUsername:orgUsername,questionNo:questionNo},function(err,foundQue){
+        if(foundQue){
+            console.log("Question found");
+            Exam.findOneAndUpdate({examName:examName,orgUsername:orgUsername},{ $push: { questions: foundQue  } },function(err,success){
+                if(err){
+                    console.log(err);
+                }
+                else if(success){
+                    console.log(success);
+                }
+                else{
+                    console.log("Nothing Happened");
+                }
+        })
+        }
+        else{
+            console.log("Question not found");
+        }
+       
+})
+}
+
+
+
 function sendrequest(email,message){
     var smtpTransport = nodemailer.createTransport({
             host: 'smtp.gmail.com',
@@ -93,7 +121,9 @@ function randomStr(){
 }
 
 
-
+const schemaOptions = {
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
+  };
 
 
 const organizationSchema=new mongoose.Schema({
@@ -127,14 +157,75 @@ const organizationSchema=new mongoose.Schema({
         type:Boolean,
         default:false
     }
-});
-const classSchema=({
+},schemaOptions);
+const classSchema=new mongoose.Schema({
     className:{type:String,sparse:true,unique:false},
     orgUsername:{type:String,sparse:true,unique:false},
     classStudent:{type:[organizationSchema],index:false,sparse:false,unique:false},
     classTeacher:{type:[organizationSchema],index:false,sparse:false,unique:false},
     classOrg:{type:[organizationSchema],index:false,sparse:false,unique:false}
 });
+
+const questionSchema=new mongoose.Schema({
+    creatorUsername:{type:String,sparse:true,unique:false},
+    questionNo:{type:String,sparse:true,unique:false},
+    examName:{type:String,sparse:true,unique:false},
+    orgUsername:{type:String,sparse:true,unique:false},
+    question:{type:String,sparse:true,unique:false},
+    solution:{type:String,sparse:true,unique:false},
+    mainPoints:{type:[String],sparse:true,unique:false},
+    keyWords:{type:[String],sparse:true,unique:false},
+    maxMarks:{
+        type: Number,
+        sparse:true,
+        unique:false,
+        integer: true
+    }
+})
+
+const answerSchema=new mongoose.Schema({
+    studentUsername:{type:String,sparse:true,unique:false},
+    orgUsername:{type:String,sparse:true,unique:false},
+    examName:{type:String,sparse:true,unique:false},
+    questionNo:{type:String,sparse:true,unique:false},
+    question:{type:questionSchema,sparse:true,unique:false},
+    answerNo:{type:String,sparse:true,unique:false},
+    answer:{type:String,sparse:true,unique:false},
+})
+
+const gradeSchema=new mongoose.Schema({
+    studentUsername:{type:String,sparse:true,unique:false},
+    orgUsername:{type:String,sparse:true,unique:false},
+    examName:{type:String,sparse:true,unique:false},
+    answerNo:{type:String,sparse:true,unique:false},
+    answer:{type:answerSchema,sparse:true,unique:false},
+    obtainMarks:{
+        type: Number,
+        sparse:true,
+        unique:false,
+        integer:true,
+        default:0
+    }
+})
+
+const examSchema=new mongoose.Schema({
+    examName:{type:String,sparse:true,unique:false},
+    className:{type:String,sparse:true,unique:false},
+    orgUsername:{type:String,sparse:true,unique:false},
+    class:{type:[classSchema],sparse:true,unique:false},
+    examDate:{type:Date,sparse:true,unique:false},
+    examEndDate:{type:Date,sparse:true,unique:false},
+    questions:{type:[questionSchema],sparse:true,unique:false},
+    answers:{type:[answerSchema],sparse:true,unique:false},
+    examGrade:{type: Number,
+        sparse:true,
+        unique:false,
+        integer: true
+    },
+    gradeSchema:{type:[gradeSchema],sparse:true,unique:false}
+});
+
+
 
 organizationSchema.plugin(passportLocalMongoose,{usernameField: 'username'});
 organizationSchema.plugin(findOrCreate);
@@ -145,6 +236,10 @@ organizationSchema.plugin(findOrCreate);
 
 const Organization=new mongoose.model("User",organizationSchema);
 const Class=new mongoose.model("Class",classSchema);
+const Question=new mongoose.model("Question",questionSchema);
+const Answer=new mongoose.model("Answer",answerSchema);
+const Grade=new mongoose.model("Grade",gradeSchema);
+const Exam=new mongoose.model("Exam",examSchema);
 
 
 passport.use(Organization.createStrategy());
@@ -286,57 +381,114 @@ app.get("/homeorganization",function(req,res){
     if(req.isAuthenticated()){
         if(req.user.registeredOrg){
             const orgUsername=req.user.username;
-            Class.find({"classOrg.username":orgUsername},function(err,foundClass){
+            Exam.find({orgUsername:orgUsername},function(err,foundExam){
+                if(foundExam){
+                    Class.find({"classOrg.username":orgUsername},function(err,foundClass){
                 
-                if(foundClass){
-                    Organization.find({"orgUsername":orgUsername,role:"Teacher",registeredTeacher:true},function(err,foundTeacher){
-                        if(foundTeacher){
-                            Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
-                                if(foundStudent){
-                                    res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:foundTeacher,Student:foundStudent});
+                        if(foundClass){
+                            Organization.find({"orgUsername":orgUsername,role:"Teacher",registeredTeacher:true},function(err,foundTeacher){
+                                if(foundTeacher){
+                                    Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                                        if(foundStudent){
+                                            res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:foundTeacher,Student:foundStudent,Exam:foundExam});
+                                        }
+                                        else{
+                                            res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:foundTeacher,Student:false,Exam:foundExam});
+                                        }
+                                    })
                                 }
                                 else{
-                                    res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:foundTeacher,Student:false});
+                                    Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                                        if(foundStudent){
+                                            res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:false,Student:foundStudent,Exam:foundExam});
+                                        }
+                                        else{
+                                            res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:false,Student:false,Exam:foundExam});
+                                        }
+                                    })
                                 }
                             })
                         }
                         else{
-                            Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
-                                if(foundStudent){
-                                    res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:false,Student:foundStudent});
+                            Organization.find({"orgUsername":orgUsername,role:"Teacher",registeredTeacher:true},function(err,foundTeacher){
+                                if(foundTeacher){
+                                    Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                                        if(foundStudent){
+                                            res.render("homeorganization",{User:req.user,Clas:false,Teacher:foundTeacher,Student:foundStudent,Exam:foundExam});
+                                        }
+                                        else{
+                                            res.render("homeorganization",{User:req.user,Clas:false,Teacher:foundTeacher,Student:false,Exam:foundExam});
+                                        }
+                                    })
                                 }
                                 else{
-                                    res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:false,Student:false});
+                                    Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                                        if(foundStudent){
+                                            res.render("homeorganization",{User:req.user,Clas:false,Teacher:false,Student:foundStudent,Exam:foundExam});
+                                        }
+                                        else{
+                                            res.render("homeorganization",{User:req.user,Clas:false,Teacher:false,Student:false,Exam:foundExam});
+                                        }
+                                    })
                                 }
                             })
                         }
                     })
                 }
                 else{
-                    Organization.find({"orgUsername":orgUsername,role:"Teacher",registeredTeacher:true},function(err,foundTeacher){
-                        if(foundTeacher){
-                            Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
-                                if(foundStudent){
-                                    res.render("homeorganization",{User:req.user,Clas:false,Teacher:foundTeacher,Student:foundStudent});
+                    Class.find({"classOrg.username":orgUsername},function(err,foundClass){
+                
+                        if(foundClass){
+                            Organization.find({"orgUsername":orgUsername,role:"Teacher",registeredTeacher:true},function(err,foundTeacher){
+                                if(foundTeacher){
+                                    Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                                        if(foundStudent){
+                                            res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:foundTeacher,Student:foundStudent,Exam:false});
+                                        }
+                                        else{
+                                            res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:foundTeacher,Student:false,Exam:false});
+                                        }
+                                    })
                                 }
                                 else{
-                                    res.render("homeorganization",{User:req.user,Clas:false,Teacher:foundTeacher,Student:false});
+                                    Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                                        if(foundStudent){
+                                            res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:false,Student:foundStudent,Exam:false});
+                                        }
+                                        else{
+                                            res.render("homeorganization",{User:req.user,Clas:foundClass,Teacher:false,Student:false,Exam:false});
+                                        }
+                                    })
                                 }
                             })
                         }
                         else{
-                            Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
-                                if(foundStudent){
-                                    res.render("homeorganization",{User:req.user,Clas:false,Teacher:false,Student:foundStudent});
+                            Organization.find({"orgUsername":orgUsername,role:"Teacher",registeredTeacher:true},function(err,foundTeacher){
+                                if(foundTeacher){
+                                    Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                                        if(foundStudent){
+                                            res.render("homeorganization",{User:req.user,Clas:false,Teacher:foundTeacher,Student:foundStudent,Exam:false});
+                                        }
+                                        else{
+                                            res.render("homeorganization",{User:req.user,Clas:false,Teacher:foundTeacher,Student:false,Exam:false});
+                                        }
+                                    })
                                 }
                                 else{
-                                    res.render("homeorganization",{User:req.user,Clas:false,Teacher:false,Student:false});
+                                    Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                                        if(foundStudent){
+                                            res.render("homeorganization",{User:req.user,Clas:false,Teacher:false,Student:foundStudent,Exam:false});
+                                        }
+                                        else{
+                                            res.render("homeorganization",{User:req.user,Clas:false,Teacher:false,Student:false,Exam:false});
+                                        }
+                                    })
                                 }
                             })
                         }
                     })
                 }
-            })
+            });
         }
         else{
             Organization.findOne({username:req.user.username,role:"Admin"},function(err,foundUser){
@@ -716,12 +868,27 @@ app.get("/homestudent",function(req,res){
     if(req.isAuthenticated()){
         if(req.user.registeredStudent){
             if(req.user.name){
+                const orgUsername=req.user.orgUsername;
                 Class.findOne({"classStudent.username":req.user.username},function(err,foundClass){
-                    if(!err){
-                        res.render("homestudent",{User:req.user,Class:foundClass});
+                    if(foundClass){
+                        Exam.find({orgUsername:orgUsername,className:req.user.class},function(err,foundExam){
+                            if(!err){
+                                res.render("homestudent",{User:req.user,Clas:foundClass,Exam:foundExam});
+                            }
+                            else{
+                                res.render("homestudent",{User:req.user,Clas:foundClass,Exam:false});
+                            }
+                        });
                     }
                     else{
-                        res.render("homestudent",{User:req.user,Class:false});
+                        Exam.find({orgUsername:orgUsername,className:req.user.class},function(err,foundExam){
+                            if(!err){
+                                res.render("homestudent",{User:req.user,Clas:false,Exam:foundExam});
+                            }
+                            else{
+                                res.render("homestudent",{User:req.user,Clas:false,Exam:false});
+                            }
+                        });
                     }
                 })
                 
@@ -944,15 +1111,65 @@ app.post("/detailteacher",function(req,res){
 
 
 app.get("/hometeacher",function(req,res){
+    
     if(req.isAuthenticated()){
-        if(req.user.registeredTeacher){
+        const orgUsername=req.user.orgUsername;
+        if(req.user.registeredTeacher && req.user.approved){
             if(req.user.name){
                 Class.find({"classTeacher.username":req.user.username},function(err,foundClass){
-                    if(!err){
-                        res.render("hometeacher",{User:req.user,Clas:foundClass});
+                    if(foundClass){
+                        Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                            if(foundStudent){
+                                Exam.find({orgUsername:orgUsername},function(err,foundExam){
+                                    if(foundExam){
+                                        res.render("hometeacher",{User:req.user,Clas:foundClass,Student:foundStudent,Exam:foundExam});
+                                    }
+                                    else{
+                                        res.render("hometeacher",{User:req.user,Clas:foundClass,Student:foundStudent,Exam:false});
+
+                                    }
+                                })
+                                
+                            }
+                            else{
+                                Exam.find({orgUsername:orgUsername},function(err,foundExam){
+                                    if(foundExam){
+                                        res.render("hometeacher",{User:req.user,Clas:foundClass,Student:false,Exam:foundExam});
+                                    }
+                                    else{
+                                        res.render("hometeacher",{User:req.user,Clas:foundClass,Student:false,Exam:false});
+
+                                    }
+                                })
+                            }
+                        });
                     }
                     else{
-                        res.render("hometeacher",{User:req.user,Clas:false});
+                        Organization.find({orgUsername:orgUsername,role:"Student",registeredStudent:true},function(err,foundStudent){
+                            if(foundStudent){
+                                Exam.find({orgUsername:orgUsername},function(err,foundExam){
+                                    if(foundExam){
+                                        res.render("hometeacher",{User:req.user,Clas:false,Student:foundStudent,Exam:foundExam});
+                                    }
+                                    else{
+                                        res.render("hometeacher",{User:req.user,Clas:false,Student:foundStudent,Exam:false});
+
+                                    }
+                                })
+                                
+                            }
+                            else{
+                                Exam.find({orgUsername:orgUsername},function(err,foundExam){
+                                    if(foundExam){
+                                        res.render("hometeacher",{User:req.user,Clas:false,Student:false,Exam:foundExam});
+                                    }
+                                    else{
+                                        res.render("hometeacher",{User:req.user,Clas:false,Student:false,Exam:false});
+
+                                    }
+                                })
+                            }
+                        });
                     }
                 })
                 
@@ -960,7 +1177,9 @@ app.get("/hometeacher",function(req,res){
             else{
                 res.redirect("/teacherpage1");
             }
-            
+        }
+        else if(req.user.registeredTeacher){
+            res.render("notApproved");
         }
         else{
             Organization.findOne({username:req.user.username,role:"Teacher"},function(err,foundUser){
@@ -1057,21 +1276,32 @@ app.post("/addteacher",function(req,res){
 app.post("/approvedelete",function(req,res){
     const id=req.body.userID;
     if(req.isAuthenticated()){
-        if(req.user.role=="Admin"&&req.user.registeredOrg==true){
-            console.log("Inside");
+        if((req.user.role=="Admin"||req.user.role=="Teacher")&&(req.user.registeredOrg==true||req.user.registeredTeacher==true)){
+            //console.log("Inside");
             if(req.body.Request=="Approve"){
                 //console.log("Approve Pending");
                 Organization.findOne({_id:id},function(err,foundUser){
                     foundUser.approved=true;
                     foundUser.save();
-                    res.redirect("/homeorganization");
+                    if(req.user.role=="Admin"){
+                        res.redirect("/homeorganization");
+                    }
+                    else{
+                        res.redirect("/hometeacher");
+                    }
+                    
                 })
             }
             else if(req.body.Request=="Remove"){
                 Organization.findByIdAndRemove(id,function(err){
                     if(!err){
                         console.log("Successfully Removed and deleted account");
-                        res.redirect("/homeorganization");
+                        if(req.user.role=="Admin"){
+                            res.redirect("/homeorganization");
+                        }
+                        else{
+                            res.redirect("/hometeacher");
+                        }
                     }
                 });
             }
@@ -1079,18 +1309,30 @@ app.post("/approvedelete",function(req,res){
                 Organization.findByIdAndRemove(id,function(err){
                     if(!err){
                         console.log("Successfully Removed and deleted account");
-                        res.redirect("/homeorganization");
+                        if(req.user.role=="Admin"){
+                            res.redirect("/homeorganization");
+                        }
+                        else{
+                            res.redirect("/hometeacher");
+                        }
                     }
                 });
             }
         }
-    } 
+        else{
+            res.render("unauthorized");
+        }
+    }
+    else{
+        res.redirect("/");
+    }
+    
 })
 
 
 app.get("/addstudent",function(req,res){
     if(req.isAuthenticated()){
-        if(req.user.role=="Admin"&&req.user.registeredOrg==true){
+        if((req.user.role=="Admin"||req.user.role=="Teacher")&&(req.user.registeredOrg==true||req.user.registeredTeacher==true)){
             res.render("addstudent",{Org:req.user});
         }
         else{
@@ -1110,12 +1352,197 @@ app.post("/addstudent",function(req,res){
     sendrequest(email,message);
     res.redirect("/homeorganization")
 })
+/*
 
 
-app.listen(3000,function(){
-    console.log("server started on port 3000");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
+
+app.get("/createExam",function(req,res){
+    //console.log(req.user);
+    const orgUsername=req.user.orgUsername;
+    if(req.isAuthenticated()){
+        if((req.user.role=="Admin"||req.user.role=="Teacher")&&(req.user.registeredOrg==true||req.user.registeredTeacher==true)){
+            Class.find({orgUsername:req.user.orgUsername},function(err,foundClass){
+                if(foundClass){
+                    res.render("createExam",{Org:req.user,message:"",Classes:foundClass});
+                }
+                else{
+                    res.render("createExam",{Org:req.user,message:"",Classes:false});
+                }
+            })
+        }
+        else{
+            res.render("unauthorized");
+        }
+    }
+    else{
+        res.redirect("/");
+    }
+})
+
+
+app.post("/createExam",function(req,res){
+    Exam.findOne({examName:req.body.examName, orgUsername:req.user.orgUsername},function(err,foundExam){
+        if(foundExam){
+            Class.find({orgUsername:req.user.orgUsername},function(err,foundClass){
+                if(foundClass){
+                    res.render("createExam",{Org:req.user,message:"Exam Already Exist",Classes:foundClass});
+                }
+                else{
+                    res.render("createExam",{Org:req.user,message:"Exam Already Exist",Classes:false});
+                }
+            })
+        }
+        else{
+    Class.findOne({_id:req.body.classId},function(err,foundClass){
+        const exam=new Exam({
+            class:foundClass,
+            className:foundClass.className,
+            examName:req.body.examName,
+            examDate:req.body.examDate,
+            examEndDate:req.body.examEndDate,
+            orgUsername:req.user.orgUsername
+        })
+        exam.save();
+        if(req.user.role=="Admin"){
+            res.redirect("/homeorganization");
+        }
+        else{
+            res.redirect("/hometeacher");
+        }
+    })
+}
+
+})
 });
 
+app.post("/removeExam",function(req,res){
+    const examName=req.body.examName;
+    const orgUsername=req.user.orgUsername;
+    Exam.deleteMany({examName:examName,orgUsername:orgUsername},function(err,foundExam){
+        if(err){
+            console.log(err);
+        }
+    })
+    if(req.user.role=="Admin"){
+        res.redirect("/homeorganization");
+    }
+    else{
+        res.redirect("/hometeacher");
+    }
+    
+});
+
+
+app.post("/getaddQuestion",function(req,res){
+    const examName=req.body.examName;
+    //console.log("examName= "+examName);
+    const orgUsername=req.user.orgUsername;
+    //console.log("orgUsername= "+orgUsername);
+    if(req.isAuthenticated()){
+        if((req.user.role=="Admin"||req.user.role=="Teacher")&&(req.user.registeredOrg==true||req.user.registeredTeacher==true)){
+
+            Exam.findOne({examName:examName,orgUsername:orgUsername},function(err,foundExam){
+                if(foundExam){
+                    Question.find({examName:examName,orgUsername:orgUsername},function(err,foundQuestion){
+                        if(foundQuestion){
+                            //console.log(foundExam);
+                            res.render("addQuestion",{User:req.user,Exams:foundExam,Question:foundQuestion,message:""});
+                        }
+                        else{
+                            res.render("addQuestion",{User:req.user,Exams:foundExam,Question:false,message:""});
+                        }
+                    })
+                
+                }
+                else{
+                    console.log("No exam found with this in app.get(/addQuestion)");
+                    res.redirect("/homeorganization");
+                }
+                
+            })
+            
+        }
+        
+        else{
+            res.render("unauthorized");
+        }
+    }
+    else{
+        res.redirect("/");
+    }
+
+});
+
+
+
+
+
+app.post("/addQuestion",function(req,res){
+    const examName=req.body.examName;
+    //console.log(examName);
+    const orgUsername=req.user.orgUsername;
+    Question.findOne({examName:examName,orgUsername:orgUsername,questionNo:req.body.questionNo},function(err,foundQuestion){
+        if(foundQuestion){
+            Exam.find({examName:examName,orgUsername:orgUsername},function(err,foundExam){
+                res.render("addQuestion",{User:req.user,Exams:foundExam,Question:foundQuestion,message:"Question Number Already Exist"});
+            })
+            
+        }
+        else{
+            const question=new Question({
+                questionNo:req.body.questionNo,
+                examName:examName,
+                orgUsername:orgUsername,
+                question:req.body.question,
+                solution:req.body.solution,
+                maxMarks:req.body.maxMarks
+            })
+            question.save(function(err,doc){
+                if(!err){
+                    saveToExam(examName,orgUsername,req.body.questionNo);
+                }
+            });
+            
+        }
+        
+        
+        res.redirect("/homeorganization");
+    })
+});
+
+app.get("/back",function(req,res){
+    if(req.user.role=="Admin"){
+        res.redirect("/homeorganization");
+    }
+    else if(req.user.role=="Student"){
+        res.redirect("/homestudent");
+    }
+    else if(req.user.role=="Teacher"){
+        res.redirect("/hometeacher");
+    }
+})
 
 /*
 
@@ -1124,11 +1551,73 @@ app.listen(3000,function(){
 
 
 
-            
-              
-              
-              
-              
-              
-                            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 */
+
+
+
+app.post("/giveExam",function(req,res){
+    const examName=req.body.examName;
+    const orgUsername=req.user.orgUsername;
+    
+    var date = new Date();
+var currentDate = date.toISOString().slice(0,10);
+var currentTime = date.getHours() + ':' + date.getMinutes();
+Exam.findOne({examName:examName,orgUsername:orgUsername},function(err,foundExam){
+    var d=foundExam.examDate;
+    var eD=foundExam.examEndDate;
+    var examD = d.toISOString().slice(0,10);
+    var examT = d.getHours() + ':' + d.getMinutes();
+    var examED = eD.toISOString().slice(0,10);
+    var examET = eD.getHours() + ':' + eD.getMinutes();
+    if(currentDate>=examD && currentTime>=examT && currentDate<=examED && currentTime<=examET){
+
+        Question.find({examName:examName,orgUsername:orgUsername},function(err,foundQuestion){
+            if(foundQuestion){
+                Exam.findOne({examName:examName,orgUsername:orgUsername},function(err,foundExam){
+                    if(foundExam){
+                        res.render("giveExam",{Question:foundQuestion,Exam:foundExam,User:req.user});
+                    }
+                })
+            }
+            else{
+                Exam.findOne({examName:examName,orgUsername:orgUsername},function(err,foundExam){
+                    if(foundExam){
+                        res.render("giveExam",{Question:false,Exam:foundExam,User:req.user});
+                    }
+                })
+            }
+        })
+        
+    }
+    else{
+        res.render("unauthorized");
+    }
+})
+
+})
+
+
+app.listen(3000,function(){
+    console.log("server started on port 3000");
+});

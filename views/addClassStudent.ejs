@@ -1,4 +1,4 @@
-<%- include('partials/header') %>
+<!--<%- include('partials/header') %>
 <%- include('partials/navbar') %> 
 <div class="container mt-5">
   <h1>Register Student</h1>
@@ -8,7 +8,7 @@
       <div class="card">
         <div class="card-body">
 
-          <!-- Makes POST request to /register route -->
+           Makes POST request to /register route 
           <form action="/registerstudent" method="POST">
             <div class="form-group">
                 <label for="email">*Email</label>
@@ -42,11 +42,11 @@
 
               <div class="form-group">
                 <label for="class">Choose your class</label>
-                <select name="class">
-                    <%if(classes.length){%>
-                        <%classes.forEach(function(class){%>
+                <select name="class" required>
+                    <%if(classes!=false){%>
+                        <%classes.forEach(function(clas){%>
   
-                          <option value="<%=class._id%>"><%=class.name%></option>
+                          <option value="<%=clas._id%>"><%=clas.className%></option>
                         <%})%>
                       <%}%>
                 </select>
@@ -75,3 +75,4 @@
 </div>
 
 <%- include('partials/footer') %>
+-->

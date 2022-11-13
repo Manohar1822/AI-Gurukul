@@ -195,10 +195,32 @@
                 <div class="box">
                     <h1>Created Exams</h1>
                 </div>
-                <%if(Clas!=false){%>
-                    <%Clas.forEach(function(clas){%>
+                <%if(Exam!=false){%>
+                    <%Exam.forEach(function(exam){%>
                         <div class="item">
-                            <h3><%=clas.className%> </h3>
+                            <ul>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                      View
+                                    </a>
+                                    <div class="dropdown-menu editView" aria-labelledby="navbarDropdown">
+                                        <p>Name: <%=exam.examName%></p>
+                                        <p>Class: <%=exam.className%></p>
+                                        <p>Start Date: <%= exam.examDate %> </p>
+                                        <p>End Date: <%= exam.examEndDate %> </p>
+                                        
+                                    </div>
+                                  </li>
+                                </ul>
+                            <h3><%=exam.examName%> </h3>
+                            <form action="/removeExam" method="post">
+                                <input type="hidden" name="examName" value="<%=exam.examName%>">
+                                <button type="submit">Remove</button>
+                            </form>
+                            <form action="/getaddQuestion" method="post">
+                                <input type="hidden" name="examName" value="<%=exam.examName%>">
+                                <button type="submit">Add Questions</button>
+                            </form>
                         </div>
                         
                     <%})%>
@@ -207,10 +229,10 @@
                 <%}%>
                 <div class="row">
                     <div class="box">
-                        <%if(Clas==false){%>
-                        <p style="color:red ;">Please add Class</p>
+                        <%if(Exam==false){%>
+                        <p style="color:red ;">You have not created any Exams</p>
                          <%}%>
-                        <a href="/createClass" class="btn btn-dark userbtn"><h2>Create New Exam</h2></a>
+                        <a href="/createExam" class="btn btn-dark userbtn"><h2>Create New Exam</h2></a>
                     </div>
                 </div>
                 
