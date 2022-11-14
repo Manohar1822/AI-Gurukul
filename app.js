@@ -55,6 +55,15 @@ function sendOTP(email,auth,authcode){
 
 }
 
+
+
+//function nextQuestion(examName,orgUsername,n){
+    
+
+//}
+
+
+
 function saveToExam(examName,orgUsername,questionNo){
     //console.log(examName);
     //console.log(orgUsername);
@@ -76,6 +85,29 @@ function saveToExam(examName,orgUsername,questionNo){
         }
         else{
             console.log("Question not found");
+        }
+       
+})
+}
+
+function saveAnsToExam(examName,orgUsername,questionNo){
+    Answer.findOne({examName:examName,orgUsername:orgUsername,questionNo:questionNo},function(err,foundQue){
+        if(foundQue){
+            console.log("Answer found");
+            Exam.findOneAndUpdate({examName:examName,orgUsername:orgUsername},{ $push: { answers: foundQue  } },function(err,success){
+                if(err){
+                    console.log(err);
+                }
+                else if(success){
+                    console.log(success);
+                }
+                else{
+                    console.log("Nothing Happened");
+                }
+        })
+        }
+        else{
+            console.log("Answer not found");
         }
        
 })
@@ -1579,11 +1611,74 @@ app.get("/back",function(req,res){
 app.post("/giveExam",function(req,res){
     const examName=req.body.examName;
     const orgUsername=req.user.orgUsername;
-    
+    const n=Number(0);
     var date = new Date();
 var currentDate = date.toISOString().slice(0,10);
 var currentTime = date.getHours() + ':' + date.getMinutes();
-Exam.findOne({examName:examName,orgUsername:orgUsername},function(err,foundExam){
+Answer.findOne({examName:examName,orgUsername:orgUsername,studentUsername:req.user.username},function(err,foundAnswer){
+    if(foundAnswer){
+        res.render("unauthorized");
+    }
+    else{
+        Exam.findOne({examName:examName,orgUsername:orgUsername},function(err,foundExam){
+            var d=foundExam.examDate;
+            var eD=foundExam.examEndDate;
+            var examD = d.toISOString().slice(0,10);
+            var examT = d.getHours() + ':' + d.getMinutes();
+            var examED = eD.toISOString().slice(0,10);
+            var examET = eD.getHours() + ':' + eD.getMinutes();
+            if(currentDate>=examD && currentTime>=examT && currentDate<=examED && currentTime<=examET){
+                if(foundExam){
+        
+                        Question.find({examName:examName,orgUsername:orgUsername},function(err,foundQuestion){
+                            if(foundQuestion){
+                                        res.render("giveExam",{Question:foundQuestion[n],Exam:foundExam,User:req.user,N:n});
+                            }
+                            else{
+                                        res.render("giveExam",{Question:false,Exam:foundExam,User:req.user,N:0});
+                            }
+                        })
+                }
+            }
+                
+            else{
+                res.render("unauthorized");
+            }
+        })
+    }
+})
+});
+
+
+
+
+
+
+
+
+app.post("/submitAnswer",function(req,res){
+    //console.log(req.user);
+    const studentUsername=req.user.username;
+    const orgUsername=req.user.orgUsername;
+    const examName=req.body.examName;
+    const questionNo=req.body.questionNo;
+    const answerNo=req.body.questionNo;
+    //const question=req.body.question;
+    const answer=req.body.answer;
+    var n=Number(req.body.n);
+    //console.log(studentUsername);
+    //console.log(orgUsername);
+    //console.log(examName);
+    //console.log(questionNo);
+    //console.log(answerNo);
+    //console.log(question);
+    //console.log(answer);
+    
+    var date = new Date();
+    var currentDate = date.toISOString().slice(0,10);
+    var currentTime = date.getHours() + ':' + date.getMinutes();
+    Exam.findOne({examName:examName,orgUsername:orgUsername},function(err,foundExam){
+        if(foundExam){
     var d=foundExam.examDate;
     var eD=foundExam.examEndDate;
     var examD = d.toISOString().slice(0,10);
@@ -1591,33 +1686,127 @@ Exam.findOne({examName:examName,orgUsername:orgUsername},function(err,foundExam)
     var examED = eD.toISOString().slice(0,10);
     var examET = eD.getHours() + ':' + eD.getMinutes();
     if(currentDate>=examD && currentTime>=examT && currentDate<=examED && currentTime<=examET){
-
-        Question.find({examName:examName,orgUsername:orgUsername},function(err,foundQuestion){
-            if(foundQuestion){
-                Exam.findOne({examName:examName,orgUsername:orgUsername},function(err,foundExam){
-                    if(foundExam){
-                        res.render("giveExam",{Question:foundQuestion,Exam:foundExam,User:req.user});
-                    }
-                })
-            }
-            else{
-                Exam.findOne({examName:examName,orgUsername:orgUsername},function(err,foundExam){
-                    if(foundExam){
-                        res.render("giveExam",{Question:false,Exam:foundExam,User:req.user});
-                    }
-                })
-            }
+        Question.findOne({examName:examName,orgUsername:orgUsername,questionNo:questionNo},function(err,foundQuestion){
+            Answer.findOne({examName:examName,orgUsername:orgUsername,studentUsername:req.user.username,questionNo:questionNo},function(err,foundAnswer){
+                if(foundAnswer){
+                    Question.find({examName:examName,orgUsername:orgUsername},function(err,foundQues){
+                        if(foundQuestion){
+                            console.log("Question Length= "+foundQues.length);
+                            console.log("n value= "+n);
+                            n=n+1;
+                            console.log("n value= "+n);
+                            console.log(foundQues[n]);
+                            console.log(foundQues);
+                            
+                            if(foundQues.length>n){
+                                res.render("giveExam",{Question:foundQues[n],Exam:foundExam,User:req.user,N:n});
+                                
+                            }
+                            else{
+                                console.log("Successfully submitted all answers");
+                                
+                                res.redirect("/homestudent");
+                            }
+                            
+                }
+                else{
+                            res.render("giveExam",{Question:false,Exam:foundExam,User:req.user,N:n});
+                }
+                    });
+                }
+                else{
+                    const answ=new Answer({
+                        studentUsername:studentUsername,
+                        orgUsername:orgUsername,
+                        examName:examName,
+                        questionNo:questionNo,
+                        answerNo:answerNo,
+                        question:foundQuestion,
+                        answer:answer
+                    })
+                    answ.save(function(err,doc){
+                        if(!err){
+                            saveAnsToExam(examName,orgUsername,questionNo);
+                            Question.find({examName:examName,orgUsername:orgUsername},function(err,foundQues){
+                                if(foundQuestion){
+                                    console.log("Question Length= "+foundQues.length);
+                                    console.log("n value= "+n);
+                                    n=n+1;
+                                    console.log("n value= "+n);
+                                    console.log(foundQues[n]);
+                                    console.log(foundQues);
+                                    
+                                    if(foundQues.length>n){
+                                        res.render("giveExam",{Question:foundQues[n],Exam:foundExam,User:req.user,N:n});
+                                        
+                                    }
+                                    else{
+                                        console.log("Successfully submitted all answers");
+                                        
+                                        res.redirect("/homestudent");
+                                    }
+                                    
+                        }
+                        else{
+                                    res.render("giveExam",{Question:false,Exam:foundExam,User:req.user,N:n});
+                        }
+                            });
+                            }
+                            else{
+                                console.log(err);
+                            }
+                               
+                        })
+                }
+            });
+            
+                
         })
         
+        
+
+    }
+}
+})
+});
+
+
+
+app.get("/allResult",function(req,res){
+    if(req.isAuthenticated()){
+        if((req.user.role=="Admin"||req.user.role=="Teacher")&&(req.user.registeredOrg==true||req.user.registeredTeacher==true)){
+            const orgUsername=req.user.orgUsername;
+            Answer.find({orgUsername:orgUsername},function(err,foundAns){
+                if(!err){
+                    
+                    res.render("allSubmission",{Ans:foundAns,User:req.user});
+                }
+                else{
+                    res.render("allSubmission",{Ans:false,User:req.user});
+                }
+            })
+        }
+        else{
+            res.render("unauthorized");
+        }
     }
     else{
         res.render("unauthorized");
     }
-})
+});
 
-})
+
 
 
 app.listen(3000,function(){
     console.log("server started on port 3000");
 });
+/*const answerSchema=new mongoose.Schema({
+    studentUsername:{type:String,sparse:true,unique:false},
+    orgUsername:{type:String,sparse:true,unique:false},
+    examName:{type:String,sparse:true,unique:false},
+    questionNo:{type:String,sparse:true,unique:false},
+    question:{type:questionSchema,sparse:true,unique:false},
+    answerNo:{type:String,sparse:true,unique:false},
+    answer:{type:String,sparse:true,unique:false},
+})*/

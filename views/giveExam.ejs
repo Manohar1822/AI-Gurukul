@@ -8,29 +8,29 @@
         <div class="card-body">
 
           <!-- Makes POST request to /register route -->
-          <form action="/endExam" method="POST">
-            <input type="hidden" name="examName" value="<%=Exam.examName%>">
+          
 
             <%if(Question!=false){%>
                 
-                <%Question.forEach(function(question){%>
-                    <form action="/giveExam" method="post">
+                
+                    <form action="/submitAnswer" method="post">
                         <input type="hidden" name="examName" value="<%=Exam.examName%>">
-                    <h3><%= question.questionNo %>) <%= question.question %> </h3>
+                        <input type="hidden" name="n" value="<%=N%>">
+                        <input type="hidden" name="question" value="<%=Question.question%>">
+                    <h3><%= Question.questionNo %>) <%= Question.question %> </h3>
                     <div class="form-group">
                         <label for="solution">*Solution</label>
                         <textarea name="answer"  cols="30" rows="10" required class="form-control" placeholder="An operating system (OS) is system software that manages computer hardware, software resources, and provides common services for computer programs."></textarea> 
         
                       </div>
-                      <button type="submit" name="questionNo" value="<%=question.questionNo%>">Write Answer</button>
+                      <button type="submit" name="questionNo" value="<%=Question.questionNo%>">Submit Answer</button>
                     </form>
-                <%})%>
+                
             
             <%}%>
             
             
-            <button type="submit" class="btn btn-dark">Submit All Answers and End Exam</button>
-          </form>
+            
 
         </div>
         <a href="/back" class="btn btn-light btn-lg" >Back to Home page</a>
