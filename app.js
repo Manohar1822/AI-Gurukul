@@ -1560,7 +1560,12 @@ app.post("/addQuestion",function(req,res){
         }
         
         
-        res.redirect("/homeorganization");
+        if(req.user.role=="Admin"){
+            res.redirect("/homeorganization");
+        }
+        else if(req.user.role=="Student"){
+            res.redirect("/homestudent");
+        }
     })
 });
 
