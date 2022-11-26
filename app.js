@@ -24,7 +24,9 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-mongoose.connect("mongodb://localhost:27017/organizationsDB");
+mongoose.connect("mongodb://127.0.0.1:27017/organizationsDB",() => {
+    console.log("Mongo connected");
+});
 
 function sendOTP(email,auth,authcode){
     var smtpTransport = nodemailer.createTransport({
@@ -1510,7 +1512,7 @@ app.post("/getaddQuestion",function(req,res){
                 }
                 else{
                     console.log("No exam found with this in app.get(/addQuestion)");
-                    res.redirect("/homeorganization");
+                    res.redirect("/back");
                 }
                 
             })
@@ -1560,12 +1562,7 @@ app.post("/addQuestion",function(req,res){
         }
         
         
-        if(req.user.role=="Admin"){
-            res.redirect("/homeorganization");
-        }
-        else if(req.user.role=="Student"){
-            res.redirect("/homestudent");
-        }
+        res.redirect("/back");
     })
 });
 
